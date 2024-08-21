@@ -7,7 +7,7 @@ The primary script, generate_mermaid.py, processes JSON files from the workflows
 
 # Example
 
-For instance, I used the workflow history from this repository and generated the following diagram:
+For instance, I used the workflow history from `Temporal-money-transfer-java` [repository](https://github.com/temporal-sa/temporal-money-transfer-java/blob/2d1a7e17029290623f192cb07bb3dbe43d6c4028/workflowHistories/happy-path-ui-decoded.json)  and generated the following diagram:
 
 ![money-transfer-workflow](https://github.com/user-attachments/assets/940d1262-2b29-432d-b490-2283cd5bec11)
 
