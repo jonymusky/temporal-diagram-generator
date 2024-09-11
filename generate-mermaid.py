@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import os
+from typing import List, Dict
 
 # Configuration constants
 OUTPUT_EVENTS_ID = False
@@ -31,7 +32,12 @@ def generate_mermaid_code(event_data):
             event_id = event["eventId"]
             event_time = event["eventTime"]
             activity_name = event["activityTaskScheduledEventAttributes"]["activityType"]["name"]
-            input_data = event["activityTaskScheduledEventAttributes"]["input"]["payloads"][0]["data"]
+        
+            input_data: List[Dict] = []
+            try:
+                input_data = event["activityTaskScheduledEventAttributes"]["input"]["payloads"][0]["data"]
+            except:
+                pass
             
             scheduled_task_id = "Task{}".format(task_index)
             mermaid_code.append('subgraph {}["Activity: {}"]'.format(scheduled_task_id, escape_string(activity_name)))
