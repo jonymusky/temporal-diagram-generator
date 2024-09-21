@@ -7,7 +7,7 @@ from typing import List, Dict
 OUTPUT_EVENTS_ID = False
 SCHEDULED_COLOR = "#f9f"
 COMPLETED_COLOR = "#bbf"
-NEXUS_COLOR = "#ffa500"
+NEXUS_COLOR = "#ffa"  # Color for Nexus operations
 WORKFLOWS_DIR = "workflows_history"
 OUTOUT_DIR = "mermaid_diagrams"
 
@@ -29,16 +29,13 @@ def generate_mermaid_code(event_data):
     previous_task_id = None  # Tracks the previous task to maintain flow
 
     for event in event_data.get("events", []):
+        # Handle activity scheduled
         if event["eventType"] == "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED":
             event_id = event["eventId"]
             event_time = event["eventTime"]
             activity_name = event["activityTaskScheduledEventAttributes"]["activityType"]["name"]
         
-            input_data: List[Dict] = []
-            try:
-                input_data = event["activityTaskScheduledEventAttributes"]["input"]["payloads"][0]["data"]
-            except:
-                pass
+            input_data = event["activityTaskScheduledEventAttributes"]["input"]["payloads"][0]["data"]
             
             scheduled_task_id = "Task{}".format(task_index)
             mermaid_code.append('subgraph {}["Activity: {}"]'.format(scheduled_task_id, escape_string(activity_name)))
@@ -102,26 +99,41 @@ def generate_mermaid_code(event_data):
                     break
 
             task_index += 1
-# Handle Nexus operation started
+        
+        # Handle Nexus operation scheduled
+        elif event["eventType"] == "EVENT_TYPE_NEXUS_OPERATION_SCHEDULED":
+            event_id = event.get("eventId", "")
+            nexus_attributes = event["nexusOperationScheduledEventAttributes"]
+            endpoint = nexus_attributes.get("endpoint", "Unknown endpoint")
+            service = nexus_attributes.get("service", "Unknown service")
+            operation = nexus_attributes.get("operation", "Unknown operation")
+            
+            nexus_task_id_scheduled = "NexusScheduled{}".format(task_index)
+            mermaid_code.append('subgraph {}["Nexus Operation Scheduled: {}"]'.format(nexus_task_id_scheduled, escape_string(operation)))
+            mermaid_code.append("class {} nexus;".format(nexus_task_id_scheduled))
+            mermaid_code.append('endpoint{}["endpoint: {}"]'.format(event_count, escape_string(endpoint)))
+            mermaid_code.append('service{}["service: {}"]'.format(event_count, escape_string(service)))
+            mermaid_code.append('operation{}["operation: {}"]'.format(event_count, escape_string(operation)))
+            if OUTPUT_EVENTS_ID:
+                mermaid_code.append('eventId{}["eventId: {}"]'.format(event_count, escape_string(str(event_id))))
+            mermaid_code.append("end")
+            event_count += 1
+
+            # Connect previous task to this Nexus scheduled operation
+            if previous_task_id:
+                mermaid_code.append("{} --> {}".format(previous_task_id, nexus_task_id_scheduled))
+            previous_task_id = nexus_task_id_scheduled  # Update previous task
+
+        # Handle Nexus operation started (optional)
         elif event["eventType"] == "EVENT_TYPE_NEXUS_OPERATION_STARTED":
             event_id = event.get("eventId", "")
-            
-            # Ensure 'links' is a list and contains at least one element
-            if isinstance(event.get("links"), list) and len(event["links"]) > 0:
-                workflow_event = event["links"][0].get("workflowEvent", {})
-                namespace = workflow_event.get("namespace", "Unknown namespace")
-                workflow_id = workflow_event.get("workflowId", "Unknown workflowId")
-            else:
-                namespace = "Unknown namespace"
-                workflow_id = "Unknown workflowId"
+            operation_id = event["nexusOperationStartedEventAttributes"].get("operationId", "UnknownOperation")
             
             nexus_task_id = "NexusStart{}".format(task_index)
-            mermaid_code.append('subgraph {}["Nexus Operation Started: {}"]'.format(nexus_task_id, escape_string(workflow_id)))
+            mermaid_code.append('subgraph {}["Nexus Operation Started: {}"]'.format(nexus_task_id, escape_string(operation_id)))
             mermaid_code.append("class {} nexus;".format(nexus_task_id))
             if OUTPUT_EVENTS_ID:
                 mermaid_code.append('eventId{}["eventId: {}"]'.format(event_count, escape_string(str(event_id))))
-            mermaid_code.append('namespace{}["namespace: {}"]'.format(event_count, escape_string(namespace)))
-            mermaid_code.append('workflowId{}["workflowId: {}"]'.format(event_count, escape_string(workflow_id)))
             mermaid_code.append("end")
             event_count += 1
 
@@ -133,17 +145,13 @@ def generate_mermaid_code(event_data):
         # Handle Nexus operation completed
         elif event["eventType"] == "EVENT_TYPE_NEXUS_OPERATION_COMPLETED":
             event_id = event.get("eventId", "")
-            
-            # Get the scheduled event ID to associate this completion with its corresponding start
             scheduled_event_id = event["nexusOperationCompletedEventAttributes"].get("scheduledEventId", "")
+            operation_id = "NexusOp{}".format(scheduled_event_id)  # Use the scheduled event ID for linking
             
-            # Ensure each Nexus operation has unique IDs
-            nexus_task_id_start = "NexusStart{}".format(scheduled_event_id)
-            nexus_task_id_complete = "NexusComplete{}".format(scheduled_event_id)
+            nexus_complete_id = "NexusComplete{}".format(scheduled_event_id)
             
-            # Append completed Nexus operation with a unique ID and label
-            mermaid_code.append('subgraph {}["Nexus Operation Completed: {}"]'.format(nexus_task_id_complete, escape_string(scheduled_event_id)))
-            mermaid_code.append("class {} nexus;".format(nexus_task_id_complete))
+            mermaid_code.append('subgraph {}["Nexus Operation Completed: {}"]'.format(nexus_complete_id, escape_string(scheduled_event_id)))
+            mermaid_code.append("class {} nexus;".format(nexus_complete_id))
             
             if OUTPUT_EVENTS_ID:
                 mermaid_code.append('eventId{}["eventId: {}"]'.format(event_count, escape_string(str(event_id))))
@@ -151,18 +159,22 @@ def generate_mermaid_code(event_data):
             mermaid_code.append("end")
             event_count += 1
             
-            # Link the completed Nexus operation to its corresponding start event
-            # Ensure that we link the Nexus start and complete correctly
+            # Link the completed Nexus operation to its start event
+            nexus_task_id_start = "NexusStart{}".format(scheduled_event_id)
+            nexus_task_id_scheduled = "NexusScheduled{}".format(scheduled_event_id)
             if nexus_task_id_start in "\n".join(mermaid_code):
-                mermaid_code.append("{} --> {}".format(nexus_task_id_start, nexus_task_id_complete))
-            
-            # Link the previous task to the start of this Nexus operation, ensuring no self-references
+                mermaid_code.append("{} --> {}".format(nexus_task_id_start, nexus_complete_id))
+            else:
+                mermaid_code.append("{} --> {}".format(nexus_task_id_scheduled, nexus_complete_id))
+
+            # Connect the previous task to the start of this Nexus operation if not linked yet
             if previous_task_id and previous_task_id != nexus_task_id_start:
-                mermaid_code.append("{} --> {}".format(previous_task_id, nexus_task_id_start))
-            
-            # After completing the Nexus operation, we set the previous task to the Nexus completion task
-            previous_task_id = nexus_task_id_complete
-                                        
+                mermaid_code.append("{} --> {}".format(previous_task_id, nexus_task_id_scheduled))
+
+            previous_task_id = nexus_complete_id  # Update previous task after completion
+
+            task_index += 1  # Increment task index for uniqueness
+                            
     return "\n".join(mermaid_code)
 
 def process_workflows():
