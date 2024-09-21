@@ -5,11 +5,14 @@ A tool to automate the creation of visual workflow diagrams from Temporal.IO Eve
 
 The primary script, generate_mermaid.py, processes JSON files from the workflows_history/ directory and generates Mermaid.js diagram files. Simply run the script and check the output directory for your visual diagrams.
 
-# Example
+# Examples
 
 For instance, I used the workflow history from `Temporal-money-transfer-java` [repository](https://github.com/temporal-sa/temporal-money-transfer-java/blob/2d1a7e17029290623f192cb07bb3dbe43d6c4028/workflowHistories/happy-path-ui-decoded.json)  and generated the following diagram:
 
-![money-transfer-workflow](https://github.com/user-attachments/assets/940d1262-2b29-432d-b490-2283cd5bec11)
+![happy-path](https://github.com/user-attachments/assets/62487a44-c3bf-4031-aaca-5ca07187137a)
+
+Additionally, here’s an example utilizing a Nexus operation in the workflow. This was generated from a workflow that includes Nexus scheduled, started, and completed events:
+![nexus](https://github.com/user-attachments/assets/1fda0803-867a-4573-aede-45e73a4bdc5c)
 
 
 # Contributing
