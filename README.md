@@ -12,7 +12,8 @@ For instance, I used the workflow history from `Temporal-money-transfer-java` [r
 ![happy-path](https://github.com/user-attachments/assets/62487a44-c3bf-4031-aaca-5ca07187137a)
 
 Additionally, here’s an example utilizing a Nexus operation in the workflow. This was generated from a workflow that includes Nexus scheduled, started, and completed events:
-![nexus](https://github.com/user-attachments/assets/1fda0803-867a-4573-aede-45e73a4bdc5c)
+![nexus](https://github.com/user-attachments/assets/28b32882-5ba7-4ca5-b043-2f89b08c3671)
+
 
 
 # Contributing
