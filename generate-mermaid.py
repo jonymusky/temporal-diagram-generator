@@ -7,7 +7,8 @@ from typing import List, Dict
 OUTPUT_EVENTS_ID = False
 SCHEDULED_COLOR = "#f9f"
 COMPLETED_COLOR = "#bbf"
-NEXUS_COLOR = "#ffa"  # Color for Nexus operations
+ACTIVITY_COLOR = "#C8E6C9"  # Color for activity
+NEXUS_STYLE_COLOR = "#FFF9C4"  # Specific color for styling Nexus tasks
 WORKFLOWS_DIR = "workflows_history"
 OUTOUT_DIR = "mermaid_diagrams"
 
@@ -21,9 +22,8 @@ def escape_string(s):
 
 def generate_mermaid_code(event_data):
     mermaid_code = ["graph TD;"]
-    mermaid_code.append("classDef scheduled fill:{},stroke:#333,stroke-width:2px;".format(SCHEDULED_COLOR))
-    mermaid_code.append("classDef completed fill:{},stroke:#333,stroke-width:2px;".format(COMPLETED_COLOR))
-    mermaid_code.append("classDef nexus fill:{},stroke:#333,stroke-width:2px;".format(NEXUS_COLOR))  # Nexus operations class
+    activity_ids = []  # To store activity task IDs
+    nexus_ids = []  # To store Nexus task IDs
     event_count = 1
     task_index = 1
     previous_task_id = None  # Tracks the previous task to maintain flow
@@ -38,6 +38,8 @@ def generate_mermaid_code(event_data):
             input_data = event["activityTaskScheduledEventAttributes"]["input"]["payloads"][0]["data"]
             
             scheduled_task_id = "Task{}".format(task_index)
+            activity_ids.append(scheduled_task_id)  # Track the activity task ID
+
             mermaid_code.append('subgraph {}["Activity: {}"]'.format(scheduled_task_id, escape_string(activity_name)))
             mermaid_code.append("class {} scheduled;".format(scheduled_task_id))
             if OUTPUT_EVENTS_ID:
@@ -73,6 +75,8 @@ def generate_mermaid_code(event_data):
                     output_data = completed_event["activityTaskCompletedEventAttributes"].get("result", {}).get("payloads", [{}])[0].get("data", {})
                     
                     completed_task_id = "CompletedTask{}".format(task_index)
+                    activity_ids.append(completed_task_id)  # Track the activity task ID
+
                     mermaid_code.append('subgraph {}["Completed: {}"]'.format(completed_task_id, escape_string(activity_name)))
                     mermaid_code.append("class {} completed;".format(completed_task_id))
                     if OUTPUT_EVENTS_ID:
@@ -109,6 +113,8 @@ def generate_mermaid_code(event_data):
             operation = nexus_attributes.get("operation", "Unknown operation")
             
             nexus_task_id_scheduled = "NexusScheduled{}".format(task_index)
+            nexus_ids.append(nexus_task_id_scheduled)  # Track the Nexus task ID
+
             mermaid_code.append('subgraph {}["Nexus Operation Scheduled: {}"]'.format(nexus_task_id_scheduled, escape_string(operation)))
             mermaid_code.append("class {} nexus;".format(nexus_task_id_scheduled))
             mermaid_code.append('endpoint{}["endpoint: {}"]'.format(event_count, escape_string(endpoint)))
@@ -130,6 +136,8 @@ def generate_mermaid_code(event_data):
             operation_id = event["nexusOperationStartedEventAttributes"].get("operationId", "UnknownOperation")
             
             nexus_task_id = "NexusStart{}".format(task_index)
+            nexus_ids.append(nexus_task_id)  # Track the Nexus start ID
+
             mermaid_code.append('subgraph {}["Nexus Operation Started: {}"]'.format(nexus_task_id, escape_string(operation_id)))
             mermaid_code.append("class {} nexus;".format(nexus_task_id))
             if OUTPUT_EVENTS_ID:
@@ -149,7 +157,8 @@ def generate_mermaid_code(event_data):
             operation_id = "NexusOp{}".format(scheduled_event_id)  # Use the scheduled event ID for linking
             
             nexus_complete_id = "NexusComplete{}".format(scheduled_event_id)
-            
+            nexus_ids.append(nexus_complete_id)  # Track the Nexus start ID
+
             mermaid_code.append('subgraph {}["Nexus Operation Completed: {}"]'.format(nexus_complete_id, escape_string(scheduled_event_id)))
             mermaid_code.append("class {} nexus;".format(nexus_complete_id))
             
@@ -162,6 +171,8 @@ def generate_mermaid_code(event_data):
             # Link the completed Nexus operation to its start event
             nexus_task_id_start = "NexusStart{}".format(scheduled_event_id)
             nexus_task_id_scheduled = "NexusScheduled{}".format(scheduled_event_id)
+            nexus_ids.append(nexus_task_id_scheduled)  # Track the Nexus start ID
+
             if nexus_task_id_start in "\n".join(mermaid_code):
                 mermaid_code.append("{} --> {}".format(nexus_task_id_start, nexus_complete_id))
             else:
@@ -174,7 +185,14 @@ def generate_mermaid_code(event_data):
             previous_task_id = nexus_complete_id  # Update previous task after completion
 
             task_index += 1  # Increment task index for uniqueness
-                            
+    
+    # Apply styles dynamically
+    for activity_id in activity_ids:
+        mermaid_code.append("style {} fill:{};".format(activity_id, ACTIVITY_COLOR))
+
+    for nexus_id in nexus_ids:
+        mermaid_code.append("style {} fill:{};".format(nexus_id, NEXUS_STYLE_COLOR))
+
     return "\n".join(mermaid_code)
 
 def process_workflows():
