@@ -1,6 +1,8 @@
 # Temporal Diagram Generator
 A tool to automate the creation of visual workflow diagrams from Temporal.IO Event History JSON data. Generates Mermaid.js diagrams, ensuring sequential activity flow and customizable appearances. Ideal for documenting and visualizing complex workflows.
 
+[![Static Badge for Temporal Code Exchange](https://img.shields.io/badge/Temporal-Code_Exchange_Featured-blue?style=flat-square&logo=temporal&labelColor=141414&color=444CE7)](https://temporal.io/code-exchange/temporal-diagram-generator)
+
 # Usage
 
 The primary script, generate_mermaid.py, processes JSON files from the workflows_history/ directory and generates Mermaid.js diagram files. Simply run the script and check the output directory for your visual diagrams.
@@ -13,7 +15,6 @@ For instance, I used the workflow history from `Temporal-money-transfer-java` [r
 
 Additionally, here’s an example utilizing a Nexus operation in the workflow. This was generated from a workflow that includes Nexus scheduled, started, and completed events:
 ![nexus](https://github.com/user-attachments/assets/28b32882-5ba7-4ca5-b043-2f89b08c3671)
-
 
 
 # Contributing
